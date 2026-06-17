@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Sandbox Simulation 0.1 Beta</title>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6880789718761474"
+     crossorigin="anonymous"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #1a1a2e;
+    color: #eee;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* === ADSENSE BANNER TOP === */
+  .adsense-banner-top {
+    width: 100%;
+    min-height: 90px;
+    background: #16213e;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-bottom: 2px solid #0f3460;
+    flex-shrink: 0;
+    padding: 4px 0;
+  }
+
+  /* === CHARACTER SELECTION PANEL === */
+  #selection-panel {
+    flex-shrink: 0;
+    background: #16213e;
+    border-bottom: 3px solid #e94560;
+    padding: 10px;
+    max-height: 35vh;
+    overflow-y: auto;
+  }
+
+  .panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+
+  .panel-title {
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: #e94560;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .clear-btn {
+    background: #e94560;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+    box-shadow: 0 2px 8px rgba(233, 69, 96, 0.4);
+  }
+  .clear-btn:hover {
+    background: #ff6b6b;
+    transform: translateY(-1px);
+  }
+  .clear-btn:active {
+    transform: scale(0.95);
+  }
+
+  .category {
+    margin-bottom: 10px;
+  }
+
+  .category-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    color: #a0a0a0;
+    margin-bottom: 6px;
+    letter-spacing: 1.5px;
+    font-weight: 600;
+  }
+
+  .char-grid {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .char-btn {
+    background: #0f3460;
+    border: 2px solid #1a1a2e;
+    border-radius: 10px;
+    padding: 8px 12px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    min-width: 70px;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .char-btn:hover {
+    border-color: #e94560;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(233, 69, 96, 0.3);
+  }
+
+  .char-btn.selected {
+    border-color: #e94560;
+    background: #1a1a2e;
+    box-shadow: 0 0 15px rgba(233, 69, 96, 0.5);
+  }
+
+  .char-emoji {
+    font-size: 2rem;
+    line-height: 1;
+  }
+
+  .char-name {
+    font-size: 0.65rem;
+    color: #ccc;
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  .char-hint {
+    position: absolute;
+    bottom: -20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #e94560;
+    color: white;
+    font-size: 0.6rem;
+    padding: 2px 6px;
+    border-radius: 4px;
+    opacity: 0;
+    transition: all 0.2s;
+    white-space: nowrap;
+    z-index: 10;
+  }
+
+  .char-btn:hover .char-hint {
+    bottom: 2px;
+    opacity: 1;
+  }
+
+  /* === GAME AREA === */
+  #game-area {
+    flex: 1;
+    background: linear-gradient(135deg, #1e3a5f 0%, #2d5a87 50%, #1e3a5f 100%);
+    position: relative;
+    overflow: hidden;
+    cursor: crosshair;
+    touch-action: none;
+  }
+
+  .game-grid {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-image: 
+      linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+  }
+
+  .placed-char {
+    position: absolute;
+    font-size: 2.5rem;
+    cursor: grab;
+    user-select: none;
+    transition: transform 0.1s;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+    z-index: 5;
+  }
+
+  .placed-char:active {
+    cursor: grabbing;
+    transform: scale(1.2);
+  }
+
+  .placed-char:hover::after {
+    content: attr(data-name);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0,0,0,0.8);
+    color: white;
+    font-size: 0.7rem;
+    padding: 2px 8px;
+    border-radius: 4px;
+    white-space: nowrap;
+    pointer-events: none;
+  }
+
+  .placed-char.cheater { animation: float 3s ease-in-out infinite; }
+  .placed-char.friendly { animation: bounce 2s ease-in-out infinite; }
+  .placed-char.hostile { animation: shake 0.5s ease-in-out infinite; }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+  }
+
+  @keyframes bounce {
+    0%, 100% { transform: translateY(0) scale(1); }
+    50% { transform: translateY(-5px) scale(1.05); }
+  }
+
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-3px) rotate(-5deg); }
+    75% { transform: translateX(3px) rotate(5deg); }
+  }
+
+  .stats-bar {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    background: rgba(0,0,0,0.6);
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    color: #a0d2eb;
+    backdrop-filter: blur(4px);
+    z-index: 10;
+  }
+
+  .hint-text {
+    position: absolute;
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0,0,0,0.5);
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    color: #a0d2eb;
+    pointer-events: none;
+    z-index: 10;
+  }
+
+  /* AdSense In-Game Ad Container */
+  .adsense-ingame {
+    position: absolute;
+    bottom: 50px;
+    right: 10px;
+    background: rgba(0,0,0,0.4);
+    padding: 4px;
+    border-radius: 8px;
+    z-index: 10;
+  }
+
+  /* Responsive */
+  @media (max-width: 600px) {
+    .char-btn { min-width: 55px; padding: 6px 8px; }
+    .char-emoji { font-size: 1.5rem; }
+    .char-name { font-size: 0.55rem; }
+    .panel-title { font-size: 0.9rem; }
+    .adsense-banner-top { min-height: 50px; }
+    .adsense-ingame { display: none; } /* Hide box ad on small screens */
+  }
+</style>
+</head>
+<body>
+
+<!-- AdSense Banner Ad (Top) - Slot: 3121390883 -->
+<div class="adsense-banner-top">
+  <ins class="adsbygoogle"
+       style="display:block"
+       data-ad-client="ca-pub-6880789718761474"
+       data-ad-slot="3121390883"
+       data-ad-format="auto"
+       data-full-width-responsive="true"></ins>
+  <script>
+       (adsbygoogle = window.adsbygoogle || []).push({});
+  </script>
+</div>
+
+<!-- CHARACTER SELECTION -->
+<div id="selection-panel">
+  <div class="panel-header">
+    <span class="panel-title">🎮 Character Select</span>
+    <button class="clear-btn" onclick="clearAllCharacters()">🗑️ Clear All</button>
+  </div>
+
+  <div class="category">
+    <div class="category-label">🔓 Cheater Characters</div>
+    <div class="char-grid">
+      <div class="char-btn selected" data-char="🧐" data-name="Author" data-type="cheater" data-speed="0" data-behavior="static">
+        <span class="char-emoji">🧐</span>
+        <span class="char-name">Author</span>
+        <span class="char-hint">Static</span>
+      </div>
+      <div class="char-btn" data-char="😎" data-name="Sunglasses Guy" data-type="cheater" data-speed="2" data-behavior="wander">
+        <span class="char-emoji">😎</span>
+        <span class="char-name">Sunglasses</span>
+        <span class="char-hint">Wanders</span>
+      </div>
+      <div class="char-btn" data-char="🤖" data-name="Bot" data-type="cheater" data-speed="3" data-behavior="teleport">
+        <span class="char-emoji">🤖</span>
+        <span class="char-name">Bot</span>
+        <span class="char-hint">Teleports</span>
+      </div>
+      <div class="char-btn" data-char="👻" data-name="Ghost" data-type="cheater" data-speed="1" data-behavior="fade">
+        <span class="char-emoji">👻</span>
+        <span class="char-name">Ghost</span>
+        <span class="char-hint">Fades</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="category">
+    <div class="category-label">🤝 Friendly NPCs</div>
+    <div class="char-grid">
+      <div class="char-btn" data-char="😊" data-name="Smiley" data-type="friendly" data-speed="1" data-behavior="bounce">
+        <span class="char-emoji">😊</span>
+        <span class="char-name">Smiley</span>
+        <span class="char-hint">Bouncy</span>
+      </div>
+      <div class="char-btn" data-char="🐶" data-name="Doggo" data-type="friendly" data-speed="2" data-behavior="follow">
+        <span class="char-emoji">🐶</span>
+        <span class="char-name">Doggo</span>
+        <span class="char-hint">Follows</span>
+      </div>
+      <div class="char-btn" data-char="🌻" data-name="Flower" data-type="friendly" data-speed="0" data-behavior="grow">
+        <span class="char-emoji">🌻</span>
+        <span class="char-name">Flower</span>
+        <span class="char-hint">Grows</span>
+      </div>
+      <div class="char-btn" data-char="🧙" data-name="Wizard" data-type="friendly" data-speed="1" data-behavior="magic">
+        <span class="char-emoji">🧙</span>
+        <span class="char-name">Wizard</span>
+        <span class="char-hint">Magic</span>
+      </div>
+      <div class="char-btn" data-char="🦋" data-name="Butterfly" data-type="friendly" data-speed="3" data-behavior="flutter">
+        <span class="char-emoji">🦋</span>
+        <span class="char-name">Butterfly</span>
+        <span class="char-hint">Flutters</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="category">
+    <div class="category-label">⚔️ Hostile NPCs</div>
+    <div class="char-grid">
+      <div class="char-btn" data-char="👹" data-name="Ogre" data-type="hostile" data-speed="1" data-behavior="chase">
+        <span class="char-emoji">👹</span>
+        <span class="char-name">Ogre</span>
+        <span class="char-hint">Chases</span>
+      </div>
+      <div class="char-btn" data-char="🐍" data-name="Snake" data-type="hostile" data-speed="2" data-behavior="patrol">
+        <span class="char-emoji">🐍</span>
+        <span class="char-name">Snake</span>
+        <span class="char-hint">Patrols</span>
+      </div>
+      <div class="char-btn" data-char="💀" data-name="Skeleton" data-type="hostile" data-speed="1" data-behavior="rattle">
+        <span class="char-emoji">💀</span>
+        <span class="char-name">Skeleton</span>
+        <span class="char-hint">Rattles</span>
+      </div>
+      <div class="char-btn" data-char="👾" data-name="Alien" data-type="hostile" data-speed="4" data-behavior="abduct">
+        <span class="char-emoji">👾</span>
+        <span class="char-name">Alien</span>
+        <span class="char-hint">Abducts</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- GAME AREA -->
+<div id="game-area">
+  <div class="game-grid"></div>
+  <div class="stats-bar">
+    <span id="char-count">Characters: 0</span> | 
+    <span id="selected-info">Selected: 🧐 Author</span>
+  </div>
+  <div class="hint-text">Click anywhere to place character • Drag to move • Double-click to remove</div>
+
+  <!-- AdSense In-Game Ad (Bottom Right) - Slot: 9310265415 -->
+  <div class="adsense-ingame">
+    <ins class="adsbygoogle"
+         style="display:inline-block;width:300px;height:250px"
+         data-ad-client="ca-pub-6880789718761474"
+         data-ad-slot="9310265415"></ins>
+    <script>
+         (adsbygoogle = window.adsbygoogle || []).push({});
+    </script>
+  </div>
+</div>
+
+<script>
+// === GAME STATE ===
+let selectedChar = { emoji: '🧐', name: 'Author', type: 'cheater', speed: 0, behavior: 'static' };
+let characters = [];
+let charIdCounter = 0;
+let draggedChar = null;
+let dragOffset = { x: 0, y: 0 };
+
+const gameArea = document.getElementById('game-area');
+const charCountEl = document.getElementById('char-count');
+const selectedInfoEl = document.getElementById('selected-info');
+
+// === CHARACTER SELECTION ===
+document.querySelectorAll('.char-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.char-btn').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    selectedChar = {
+      emoji: btn.dataset.char,
+      name: btn.dataset.name,
+      type: btn.dataset.type,
+      speed: parseInt(btn.dataset.speed),
+      behavior: btn.dataset.behavior
+    };
+    selectedInfoEl.textContent = `Selected: ${selectedChar.emoji} ${selectedChar.name}`;
+  });
+});
+
+// === PLACE CHARACTER ===
+gameArea.addEventListener('click', (e) => {
+  if (e.target.classList.contains('placed-char') || draggedChar) return;
+
+  const rect = gameArea.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+
+  placeCharacter(x, y);
+});
+
+function placeCharacter(x, y) {
+  const id = charIdCounter++;
+  const charEl = document.createElement('div');
+  charEl.className = `placed-char ${selectedChar.type}`;
+  charEl.textContent = selectedChar.emoji;
+  charEl.dataset.id = id;
+  charEl.dataset.name = selectedChar.name;
+  charEl.style.left = (x - 20) + 'px';
+  charEl.style.top = (y - 20) + 'px';
+
+  gameArea.appendChild(charEl);
+
+  const charData = {
+    id: id,
+    element: charEl,
+    ...selectedChar,
+    x: x - 20,
+    y: y - 20,
+    vx: (Math.random() - 0.5) * selectedChar.speed,
+    vy: (Math.random() - 0.5) * selectedChar.speed,
+    born: Date.now()
+  };
+
+  characters.push(charData);
+  updateStats();
+  applyBehavior(charData);
+}
+
+// === BEHAVIORS ===
+function applyBehavior(char) {
+  switch(char.behavior) {
+    case 'wander':
+      setInterval(() => {
+        if (!char.element.parentNode) return;
+        char.vx = (Math.random() - 0.5) * char.speed * 2;
+        char.vy = (Math.random() - 0.5) * char.speed * 2;
+      }, 2000);
+      break;
+    case 'teleport':
+      setInterval(() => {
+        if (!char.element.parentNode) return;
+        const rect = gameArea.getBoundingClientRect();
+        char.x = Math.random() * (rect.width - 40);
+        char.y = Math.random() * (rect.height - 40);
+        char.element.style.left = char.x + 'px';
+        char.element.style.top = char.y + 'px';
+      }, 3000);
+      break;
+    case 'fade':
+      setInterval(() => {
+        if (!char.element.parentNode) return;
+        char.element.style.opacity = Math.random() * 0.5 + 0.3;
+      }, 1500);
+      break;
+    case 'grow':
+      let growing = true;
+      setInterval(() => {
+        if (!char.element.parentNode) return;
+        const scale = growing ? 1.3 : 1;
+        char.element.style.transform = `scale(${scale})`;
+        growing = !growing;
+      }, 2000);
+      break;
+    case 'magic':
+      setInterval(() => {
+        if (!char.element.parentNode) return;
+        const spark = document.createElement('div');
+        spark.textContent = '✨';
+        spark.style.position = 'absolute';
+        spark.style.left = char.x + Math.random() * 40 + 'px';
+        spark.style.top = char.y - 20 + 'px';
+        spark.style.fontSize = '1rem';
+        spark.style.pointerEvents = 'none';
+        spark.style.transition = 'all 1s';
+        gameArea.appendChild(spark);
+        setTimeout(() => {
+          spark.style.top = (char.y - 50) + 'px';
+          spark.style.opacity = '0';
+        }, 50);
+        setTimeout(() => spark.remove(), 1000);
+      }, 2500);
+      break;
+    case 'abduct':
+      setInterval(() => {
+        if (!char.element.parentNode) return;
+        const beam = document.createElement('div');
+        beam.style.position = 'absolute';
+        beam.style.left = (char.x + 15) + 'px';
+        beam.style.top = char.y + 'px';
+        beam.style.width = '10px';
+        beam.style.height = '0px';
+        beam.style.background = 'rgba(0, 255, 0, 0.3)';
+        beam.style.transition = 'height 0.5s';
+        gameArea.appendChild(beam);
+        setTimeout(() => beam.style.height = '100px', 50);
+        setTimeout(() => { beam.style.opacity = '0'; beam.style.height = '0'; }, 500);
+        setTimeout(() => beam.remove(), 1000);
+      }, 4000);
+      break;
+  }
+}
+
+// === ANIMATION LOOP ===
+function animate() {
+  const rect = gameArea.getBoundingClientRect();
+
+  characters.forEach(char => {
+    if (!char.element.parentNode) return;
+    if (draggedChar && draggedChar.id === char.id) return;
+
+    if (char.behavior === 'wander' || char.behavior === 'patrol') {
+      char.x += char.vx;
+      char.y += char.vy;
+      if (char.x <= 0 || char.x >= rect.width - 40) char.vx *= -1;
+      if (char.y <= 0 || char.y >= rect.height - 40) char.vy *= -1;
+      char.x = Math.max(0, Math.min(rect.width - 40, char.x));
+      char.y = Math.max(0, Math.min(rect.height - 40, char.y));
+      char.element.style.left = char.x + 'px';
+      char.element.style.top = char.y + 'px';
+    }
+
+    if (char.behavior === 'chase') {
+      const targets = characters.filter(c => c.type === 'friendly' && c.id !== char.id);
+      if (targets.length > 0) {
+        const nearest = targets.reduce((closest, c) => {
+          const dist = Math.hypot(c.x - char.x, c.y - char.y);
+          return dist < Math.hypot(closest.x - char.x, closest.y - char.y) ? c : closest;
+        });
+        const dx = nearest.x - char.x;
+        const dy = nearest.y - char.y;
+        const dist = Math.hypot(dx, dy);
+        if (dist > 5) {
+          char.x += (dx / dist) * char.speed * 0.5;
+          char.y += (dy / dist) * char.speed * 0.5;
+          char.element.style.left = char.x + 'px';
+          char.element.style.top = char.y + 'px';
+        }
+      }
+    }
+  });
+
+  requestAnimationFrame(animate);
+}
+
+animate();
+
+// === DRAG & DROP ===
+gameArea.addEventListener('mousedown', (e) => {
+  if (e.target.classList.contains('placed-char')) {
+    draggedChar = characters.find(c => c.id === parseInt(e.target.dataset.id));
+    if (draggedChar) {
+      dragOffset.x = e.clientX - draggedChar.x;
+      dragOffset.y = e.clientY - draggedChar.y;
+      e.target.style.cursor = 'grabbing';
+    }
+  }
+});
+
+document.addEventListener('mousemove', (e) => {
+  if (draggedChar) {
+    const rect = gameArea.getBoundingClientRect();
+    draggedChar.x = Math.max(0, Math.min(rect.width - 40, e.clientX - rect.left - 20));
+    draggedChar.y = Math.max(0, Math.min(rect.height - 40, e.clientY - rect.top - 20));
+    draggedChar.element.style.left = draggedChar.x + 'px';
+    draggedChar.element.style.top = draggedChar.y + 'px';
+  }
+});
+
+document.addEventListener('mouseup', () => {
+  if (draggedChar) {
+    draggedChar.element.style.cursor = 'grab';
+    draggedChar = null;
+  }
+});
+
+// Touch support
+let touchChar = null;
+gameArea.addEventListener('touchstart', (e) => {
+  if (e.target.classList.contains('placed-char')) {
+    touchChar = characters.find(c => c.id === parseInt(e.target.dataset.id));
+  }
+}, {passive: false});
+
+gameArea.addEventListener('touchmove', (e) => {
+  if (touchChar) {
+    e.preventDefault();
+    const touch = e.touches[0];
+    const rect = gameArea.getBoundingClientRect();
+    touchChar.x = Math.max(0, Math.min(rect.width - 40, touch.clientX - rect.left - 20));
+    touchChar.y = Math.max(0, Math.min(rect.height - 40, touch.clientY - rect.top - 20));
+    touchChar.element.style.left = touchChar.x + 'px';
+    touchChar.element.style.top = touchChar.y + 'px';
+  }
+}, {passive: false});
+
+gameArea.addEventListener('touchend', () => { touchChar = null; });
+
+// === CLEAR ALL ===
+function clearAllCharacters() {
+  characters.forEach(char => {
+    if (char.element && char.element.parentNode) char.element.remove();
+  });
+  characters = [];
+  charIdCounter = 0;
+  updateStats();
+}
+
+function updateStats() {
+  charCountEl.textContent = `Characters: ${characters.length}`;
+}
+
+// === DOUBLE CLICK TO REMOVE ===
+gameArea.addEventListener('dblclick', (e) => {
+  if (e.target.classList.contains('placed-char')) {
+    const id = parseInt(e.target.dataset.id);
+    const char = characters.find(c => c.id === id);
+    if (char) {
+      char.element.remove();
+      characters = characters.filter(c => c.id !== id);
+      updateStats();
+    }
+  }
+});
+
+// === KEYBOARD SHORTCUTS ===
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Delete' || e.key === 'Backspace') clearAllCharacters();
+});
+</script>
+
+</body>
+</html>
